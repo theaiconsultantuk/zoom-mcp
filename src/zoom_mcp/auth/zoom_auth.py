@@ -3,11 +3,12 @@
 This module handles Zoom OAuth 2.0 Server-to-Server authentication.
 """
 
+import base64
 import os
 from datetime import datetime, timedelta
 from typing import Optional
 
-import jwt
+import httpx
 
 
 class ZoomAuth:
@@ -51,33 +52,48 @@ class ZoomAuth:
         """
         if not self._token or not self._token_expiry:
             return False
-        return datetime.now() < self._token_expiry
+        # Add 5 minute buffer before expiry
+        return datetime.now() < (self._token_expiry - timedelta(minutes=5))
 
     def _generate_token(self) -> str:
-        """Generate a new JWT token.
+        """Generate a new access token using OAuth2.
 
         Returns:
-            str: The generated JWT token
-        """
-        # Token expires in 1 hour
-        expiry = datetime.now() + timedelta(hours=1)
-        
-        # Prepare the payload
-        payload = {
-            "iss": self.api_key,
-            "exp": int(expiry.timestamp()),
-        }
-        
-        if self.account_id:
-            payload["account_id"] = self.account_id
+            str: The access token
 
-        # Generate the token
-        self._token = jwt.encode(
-            payload,
-            self.api_secret,
-            algorithm="HS256"
-        )
-        self._token_expiry = expiry
+        Raises:
+            Exception: If token generation fails
+        """
+        # Create base64 encoded credentials
+        credentials = base64.b64encode(
+            f"{self.api_key}:{self.api_secret}".encode()
+        ).decode()
+
+        # Define the scopes we need - for now, just the basic user:read:admin scope
+        # which we know works for /users/me
+        scopes = "user:read:admin"
+
+        # Make OAuth token request
+        with httpx.Client() as client:
+            response = client.post(
+                "https://zoom.us/oauth/token",
+                headers={
+                    "Authorization": f"Basic {credentials}",
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
+                data={
+                    "grant_type": "account_credentials",
+                    "account_id": self.account_id if self.account_id else "",
+                    "scope": scopes
+                },
+                timeout=10.0,
+            )
+            response.raise_for_status()
+            data = response.json()
+
+        # Store token and expiry
+        self._token = data["access_token"]
+        self._token_expiry = datetime.now() + timedelta(seconds=data["expires_in"])
 
         return self._token
 
