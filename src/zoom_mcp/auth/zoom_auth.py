@@ -5,8 +5,9 @@ This module handles Zoom OAuth 2.0 Server-to-Server authentication.
 
 import base64
 import os
+import json
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, List
 
 import httpx
 
@@ -69,26 +70,48 @@ class ZoomAuth:
             f"{self.api_key}:{self.api_secret}".encode()
         ).decode()
 
-        # Define the scopes we need - for now, just the basic user:read:admin scope
-        # which we know works for /users/me
-        scopes = "user:read:admin"
+        # Define required scopes
+        scopes = [
+            "account:read:settings:master",
+            "account:read:account_setting:master",
+            "cloud_recording:read:list_account_recordings:master",
+            "cloud_recording:read:recording:master"
+        ]
+        
+        # Join scopes with space for OAuth token request
+        scopes_str = " ".join(scopes)
 
-        # Make OAuth token request
+        # Print debug information
+        print(f"API Key: {self.api_key}")
+        print(f"API Secret: {'*' * len(self.api_secret)}")
+        print(f"Account ID: {self.account_id}")
+        print(f"Basic Auth: {credentials[:10]}...{credentials[-10:]}")
+        print(f"Scopes: {scopes_str}")
+
+        # Try client credentials grant type 
         with httpx.Client() as client:
+            # Make the request with client_credentials grant type
             response = client.post(
                 "https://zoom.us/oauth/token",
                 headers={
                     "Authorization": f"Basic {credentials}",
-                    "Content-Type": "application/x-www-form-urlencoded",
+                    "Content-Type": "application/x-www-form-urlencoded"
                 },
                 data={
-                    "grant_type": "account_credentials",
-                    "account_id": self.account_id if self.account_id else "",
-                    "scope": scopes
+                    "grant_type": "client_credentials",
+                    "scope": scopes_str
                 },
                 timeout=10.0,
             )
-            response.raise_for_status()
+            
+            print(f"Response status: {response.status_code}")
+            print(f"Response headers: {dict(response.headers)}")
+            print(f"Response body: {response.text}")
+            
+            if response.status_code != 200:
+                error_message = f"Failed to get OAuth token: {response.status_code} - {response.text}"
+                raise Exception(error_message)
+                
             data = response.json()
 
         # Store token and expiry
@@ -114,6 +137,11 @@ class ZoomAuth:
         if not api_key or not api_secret:
             raise ValueError(
                 "ZOOM_API_KEY and ZOOM_API_SECRET environment variables must be set"
+            )
+            
+        if not account_id:
+            raise ValueError(
+                "ZOOM_ACCOUNT_ID environment variable must be set"
             )
 
         return cls(api_key=api_key, api_secret=api_secret, account_id=account_id) 
