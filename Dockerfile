@@ -28,9 +28,5 @@ EXPOSE 8080
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 
-# Health check - disabled for stdio-based MCP server
-# Coolify: If you need healthcheck, please enable it in Coolify UI settings
-# and configure it to check the appropriate endpoint for your deployment
-
 # Run the server
 CMD ["python", "-m", "zoom_mcp.server"]
