@@ -22,8 +22,9 @@ RUN pip install --no-cache-dir -e .
 # Create directory for environment file
 RUN mkdir -p /app/config
 
-# Expose port 3000 (Coolify default)
-EXPOSE 3000
+# Expose ports
+EXPOSE 3000  # MCP SSE Server
+EXPOSE 3001  # REST API
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
@@ -31,5 +32,5 @@ ENV MCP_TRANSPORT=sse
 ENV FASTMCP_HOST=0.0.0.0
 ENV FASTMCP_PORT=3000
 
-# Run the server
-CMD ["python", "-m", "zoom_mcp.server"]
+# Run both servers (MCP SSE + REST API)
+CMD ["python", "-m", "zoom_mcp.run_combined"]
