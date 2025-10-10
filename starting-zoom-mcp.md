@@ -175,9 +175,9 @@ python scripts/check_env.py
 ```
 🔍 Checking Environment Variables...
 
-ZOOM_API_KEY: WRv5JXlFSXSZ5jmGtvznw
+ZOOM_API_KEY: your-client-id-here
 ZOOM_API_SECRET: ********************************
-ZOOM_ACCOUNT_ID: mk8MCWYUT2-Er1nzO4LkAg
+ZOOM_ACCOUNT_ID: your-account-id-here
 
 ✅ All required environment variables are set.
 ```

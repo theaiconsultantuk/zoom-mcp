@@ -327,13 +327,13 @@ class_name = "ZoomMCPState"
 
 ```bash
 wrangler secret put ZOOM_API_KEY
-# Enter: WRv5JXlFSXSZ5jmGtvznw
+# Enter: your-client-id-here
 
 wrangler secret put ZOOM_API_SECRET
-# Enter: 4qqxMKsGjLZ8ooQN42NLbHce5OdoTE2V
+# Enter: your-client-secret-here
 
 wrangler secret put ZOOM_ACCOUNT_ID
-# Enter: mk8MCWYUT2-Er1nzO4LkAg
+# Enter: your-account-id-here
 ```
 
 ---

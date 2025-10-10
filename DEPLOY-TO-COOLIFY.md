@@ -4,101 +4,56 @@ Your personalized deployment guide for Coolify.
 
 ---
 
-## Step 1: Push to Your GitHub
+## ✅ Prerequisites Complete
 
-Run these commands in your terminal:
+Your code is already on GitHub at:
+**https://github.com/theaiconsultantuk/zoom-mcp**
 
-```bash
-cd /Volumes/Courses/Scripts/Python/MCP/zoom-mcp
-
-# Remove old remote pointing to echelon-ai-labs
-git remote remove origin
-
-# Add YOUR GitHub repo
-git remote add origin https://github.com/theaiconsultant/zoom-mcp-enhanced.git
-
-# Stage all your enhancements
-git add .
-
-# Commit everything
-git commit -m "Enhanced Zoom MCP server with 8 tools, Docker support, and Coolify deployment config
-
-- Added 7 new MCP tools (meetings, users, recordings)
-- Fixed OAuth authentication for Server-to-Server
-- Added Docker and docker-compose configuration
-- Created comprehensive deployment documentation
-- Ready for Coolify deployment"
-
-# Push to your GitHub
-git push -u origin main
-```
+Everything is ready to deploy:
+- ✅ All 8 tools implemented
+- ✅ Docker configuration
+- ✅ OAuth fixes
+- ✅ Documentation
+- ✅ .env excluded from repo
 
 ---
 
-## Step 2: Create GitHub Repository
+## Step 1: Configure Coolify
 
-**Before running the commands above**, create the repository:
-
-1. Go to: https://github.com/new
-2. **Repository name:** `zoom-mcp-enhanced`
-3. **Description:** `Enhanced Zoom MCP Server with 8 tools for meetings, users, and recordings`
-4. **Visibility:** Private (recommended) or Public
-5. **DO NOT** initialize with README, .gitignore, or license
-6. Click **"Create repository"**
-
----
-
-## Step 3: Verify on GitHub
-
-After pushing, verify at:
-https://github.com/theaiconsultant/zoom-mcp-enhanced
-
-**You should see:**
-- ✅ All source code files
-- ✅ Dockerfile
-- ✅ docker-compose.yml
-- ✅ Documentation files
-- ✅ .gitignore file
-- ❌ NO .env file (correct! - it's gitignored)
-
----
-
-## Step 4: Configure Coolify
-
-### 4.1 Access Coolify
+### 1.1 Access Coolify
 Open your Coolify dashboard on Hostinger
 
-### 4.2 Create New Application
+### 1.2 Create New Application
 
 1. Click **"+ New Resource"**
 2. Select **"Application"**
 3. Choose **"Public Repository"** or connect GitHub OAuth
 
-### 4.3 Repository Settings
+### 1.3 Repository Settings
 
 **Repository URL:**
 ```
-https://github.com/theaiconsultant/zoom-mcp-enhanced
+https://github.com/theaiconsultantuk/zoom-mcp
 ```
 
 **Branch:** `main`
 
 **Build Pack:** Docker (will auto-detect from Dockerfile)
 
-### 4.4 Environment Variables
+### 1.4 Environment Variables
 
 Click **"Environment Variables"** and add these three:
 
 ```bash
-ZOOM_API_KEY=WRv5JXlFSXSZ5jmGtvznw
+ZOOM_API_KEY=your-client-id-here
 ```
 
 ```bash
-ZOOM_API_SECRET=4qqxMKsGjLZ8ooQN42NLbHce5OdoTE2V
+ZOOM_API_SECRET=your-client-secret-here
 ```
 
 ```bash
-ZOOM_ACCOUNT_ID=mk8MCWYUT2-Er1nzO4LkAg
+ZOOM_ACCOUNT_ID=your-account-id-here
 ```
 
 **Important:**
@@ -106,14 +61,14 @@ ZOOM_ACCOUNT_ID=mk8MCWYUT2-Er1nzO4LkAg
 - Mark each as **"Runtime"** ✅
 - These are encrypted by Coolify and never exposed
 
-### 4.5 Port Configuration
+### 1.5 Port Configuration
 
 **Container Port:** 8080
 **Public Port:** 80 (or 443 for HTTPS)
 
 Coolify will handle the mapping automatically.
 
-### 4.6 Domain (Optional but Recommended)
+### 1.6 Domain (Optional but Recommended)
 
 **Option A: Coolify Subdomain**
 - Auto-assigned: `zoom-mcp-xxxx.yourserver.com`
@@ -124,7 +79,7 @@ Coolify will handle the mapping automatically.
 
 ---
 
-## Step 5: Deploy!
+## Step 2: Deploy!
 
 1. Click **"Deploy"** button
 2. Watch the build logs
@@ -143,7 +98,7 @@ Coolify will handle the mapping automatically.
 
 ---
 
-## Step 6: Test Your Deployment
+## Step 3: Test Your Deployment
 
 ### Test 1: Health Check
 
@@ -166,7 +121,7 @@ curl -X POST https://zoom-mcp-xxxx.yourserver.com/mcp \
 
 ---
 
-## Step 7: Configure for Gumloop
+## Step 4: Configure for Gumloop
 
 In Gumloop's MCP integration:
 
@@ -229,7 +184,7 @@ git push origin main
 ## Quick Reference
 
 ### Your GitHub Repo
-https://github.com/theaiconsultant/zoom-mcp-enhanced
+https://github.com/theaiconsultantuk/zoom-mcp
 
 ### Required Environment Variables
 - ZOOM_API_KEY

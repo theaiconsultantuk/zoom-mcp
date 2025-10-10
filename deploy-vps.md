@@ -129,9 +129,9 @@ nano .env
 
 **Add your Zoom credentials:**
 ```env
-ZOOM_API_KEY=WRv5JXlFSXSZ5jmGtvznw
-ZOOM_API_SECRET=4qqxMKsGjLZ8ooQN42NLbHce5OdoTE2V
-ZOOM_ACCOUNT_ID=mk8MCWYUT2-Er1nzO4LkAg
+ZOOM_API_KEY=your-client-id-here
+ZOOM_API_SECRET=your-client-secret-here
+ZOOM_ACCOUNT_ID=your-account-id-here
 ```
 
 **Save and exit:** Ctrl+X, then Y, then Enter
