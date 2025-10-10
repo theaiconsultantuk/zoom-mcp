@@ -220,9 +220,21 @@ class ZoomMCP:
                 logger.error(f"Error in get_user tool: {str(e)}")
                 raise
 
-    def start(self):
-        """Start the MCP server."""
-        self.mcp_server.run()
+    def start(self, transport: str = "stdio", host: str = "0.0.0.0", port: int = 8080):
+        """
+        Start the MCP server.
+
+        Args:
+            transport: Transport mode - "stdio" for local, "sse" for remote HTTP/SSE
+            host: Host to bind to (only used for SSE transport)
+            port: Port to bind to (only used for SSE transport)
+        """
+        if transport == "sse":
+            logger.info(f"Starting MCP server in SSE mode on {host}:{port}")
+            self.mcp_server.run(transport="sse", host=host, port=port)
+        else:
+            logger.info("Starting MCP server in stdio mode")
+            self.mcp_server.run()
 
     def stop(self):
         """Stop the MCP server."""
@@ -262,9 +274,14 @@ if __name__ == "__main__":
     try:
         # Create and start the MCP server
         mcp_server = create_zoom_mcp()
-        
+
+        # Get transport mode from environment (default to sse for Docker deployment)
+        transport = os.getenv("MCP_TRANSPORT", "sse")
+        host = os.getenv("MCP_HOST", "0.0.0.0")
+        port = int(os.getenv("MCP_PORT", "8080"))
+
         # Run the server
-        mcp_server.start()
+        mcp_server.start(transport=transport, host=host, port=port)
     except Exception as e:
         logger.error(f"Error starting Zoom MCP server: {str(e)}")
         import sys
