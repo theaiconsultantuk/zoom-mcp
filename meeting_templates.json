@@ -1,0 +1,40 @@
+{
+  "think_tank": {
+    "topic": "Weekly Thinktank Meeting",
+    "duration": 90,
+    "agenda": "Weekly discussion on AI development and business strategy",
+    "default_attendees": [],
+    "settings": {
+      "host_video": true,
+      "participant_video": true,
+      "join_before_host": false,
+      "mute_upon_entry": false,
+      "waiting_room": true,
+      "audio": "both",
+      "auto_recording": "cloud"
+    }
+  },
+  "ai_training": {
+    "topic": "AI Training Session",
+    "duration": 60,
+    "agenda": "AI technology training and knowledge sharing",
+    "default_attendees": [],
+    "settings": {
+      "host_video": true,
+      "participant_video": true,
+      "auto_recording": "cloud"
+    }
+  },
+  "office_hours": {
+    "topic": "Office Hours",
+    "duration": 60,
+    "agenda": "Open discussion and Q&A session",
+    "default_attendees": [],
+    "settings": {
+      "host_video": true,
+      "participant_video": true,
+      "waiting_room": false,
+      "auto_recording": "none"
+    }
+  }
+}

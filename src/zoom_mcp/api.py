@@ -366,6 +366,186 @@ async def get_user_details(user_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/meetings/templates")
+async def get_meeting_templates():
+    """
+    Get available meeting templates.
+
+    Returns:
+        Dictionary of meeting templates (think_tank, ai_training, office_hours, etc.)
+    """
+    import json
+    from pathlib import Path
+
+    try:
+        template_file = Path(__file__).parent.parent.parent / "meeting_templates.json"
+        if template_file.exists():
+            with open(template_file, 'r') as f:
+                templates = json.load(f)
+            return {"success": True, "templates": templates}
+        else:
+            return {
+                "success": True,
+                "templates": {
+                    "think_tank": {
+                        "topic": "Weekly Thinktank Meeting",
+                        "duration": 90,
+                        "agenda": "Weekly discussion"
+                    }
+                }
+            }
+    except Exception as e:
+        logger.error(f"Error loading templates: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/meetings/create-from-template")
+async def create_meeting_from_template(
+    template: str = Query(..., description="Template name (think_tank, ai_training, etc.)"),
+    start_time: str = Query(..., description="Start time in ISO format (YYYY-MM-DDTHH:MM:SSZ)"),
+    attendees: Optional[str] = Query(None, description="Comma-separated email addresses to add to template defaults"),
+    override_topic: Optional[str] = Query(None, description="Override the template topic"),
+    override_duration: Optional[int] = Query(None, description="Override the template duration")
+):
+    """
+    Create a meeting from a template.
+
+    Example:
+        POST /api/meetings/create-from-template?template=think_tank&start_time=2025-10-16T19:00:00Z&attendees=oliver@example.com,milana@example.com
+
+    This is perfect for AIVA - just specify template and time!
+    """
+    try:
+        # Get templates
+        templates_response = await get_meeting_templates()
+        templates = templates_response.get("templates", {})
+
+        if template not in templates:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Template '{template}' not found. Available: {', '.join(templates.keys())}"
+            )
+
+        template_data = templates[template]
+
+        # Build meeting from template
+        topic = override_topic or template_data.get("topic")
+        duration = override_duration or template_data.get("duration", 60)
+        agenda = template_data.get("agenda", "")
+
+        # Combine template attendees with specified attendees
+        template_attendees = template_data.get("default_attendees", [])
+        if attendees:
+            template_attendees.extend(attendees.split(","))
+
+        attendees_str = ",".join(template_attendees) if template_attendees else None
+
+        # Create the meeting
+        return await create_meeting(
+            topic=topic,
+            start_time=start_time,
+            duration=duration,
+            attendees=attendees_str,
+            agenda=agenda
+        )
+
+    except Exception as e:
+        logger.error(f"Error creating meeting from template: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/meetings/create")
+async def create_meeting(
+    topic: str = Query(..., description="Meeting topic/title"),
+    start_time: str = Query(..., description="Start time in ISO format (YYYY-MM-DDTHH:MM:SSZ)"),
+    duration: int = Query(60, description="Duration in minutes"),
+    attendees: Optional[str] = Query(None, description="Comma-separated email addresses"),
+    agenda: Optional[str] = Query(None, description="Meeting agenda"),
+    user_id: Optional[str] = Query(None, description="Host user ID (defaults to main account)")
+):
+    """
+    Create a new Zoom meeting.
+
+    Example:
+        POST /api/meetings/create?topic=Think Tank Meeting&start_time=2025-10-16T19:00:00Z&duration=90&attendees=oliver@example.com,milana@example.com
+
+    Returns:
+        Meeting details including join URL and meeting ID
+    """
+    try:
+        from zoom_mcp.auth.zoom_auth import ZoomAuth
+        import httpx
+
+        zoom_auth = ZoomAuth.from_env()
+        access_token = zoom_auth.get_access_token()
+
+        # If no user_id specified, get the first user from the account
+        if not user_id:
+            users_response = await get_users(status="active")
+            if users_response.get("users"):
+                user_id = users_response["users"][0]["id"]
+            else:
+                raise HTTPException(status_code=400, detail="No users found in account")
+
+        # Construct API URL
+        api_url = f"https://api.zoom.us/v2/users/{user_id}/meetings"
+
+        # Build meeting payload
+        meeting_data = {
+            "topic": topic,
+            "type": 2,  # Scheduled meeting
+            "start_time": start_time,
+            "duration": duration,
+            "timezone": "Europe/London",
+            "agenda": agenda or "",
+            "settings": {
+                "host_video": True,
+                "participant_video": True,
+                "join_before_host": False,
+                "mute_upon_entry": False,
+                "waiting_room": True,
+                "audio": "both",
+                "auto_recording": "cloud"
+            }
+        }
+
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json"
+        }
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(api_url, headers=headers, json=meeting_data)
+
+            if response.status_code not in [200, 201]:
+                error_message = f"Failed to create meeting: {response.status_code} - {response.text}"
+                logger.error(error_message)
+                raise HTTPException(status_code=response.status_code, detail=error_message)
+
+            meeting_response = response.json()
+
+            # If attendees specified, add them as alternative hosts or send invites
+            # (Note: Zoom API doesn't directly add participants, they're invited via email)
+            if attendees:
+                meeting_response["invited_attendees"] = attendees.split(",")
+
+            return {
+                "success": True,
+                "meeting_id": meeting_response.get("id"),
+                "join_url": meeting_response.get("join_url"),
+                "start_url": meeting_response.get("start_url"),
+                "topic": meeting_response.get("topic"),
+                "start_time": meeting_response.get("start_time"),
+                "duration": meeting_response.get("duration"),
+                "password": meeting_response.get("password"),
+                "full_response": meeting_response
+            }
+
+    except Exception as e:
+        logger.error(f"Error creating meeting: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/recordings")
 async def get_recordings(
     from_date: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
