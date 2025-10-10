@@ -235,6 +235,44 @@ async def get_meeting_details(meeting_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/meetings/{meeting_id}/past")
+async def get_past_meeting(meeting_id: str):
+    """
+    Get details of the last past instance of a meeting.
+    Use this to get the UUID of past occurrences for recurring meetings.
+
+    Example:
+        GET /api/meetings/87047461484/past
+    """
+    try:
+        from zoom_mcp.auth.zoom_auth import ZoomAuth
+        import httpx
+
+        zoom_auth = ZoomAuth.from_env()
+        access_token = zoom_auth.get_access_token()
+
+        api_url = f"https://api.zoom.us/v2/past_meetings/{meeting_id}"
+
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json"
+        }
+
+        async with httpx.AsyncClient() as client:
+            response = await client.get(api_url, headers=headers)
+
+            if response.status_code != 200:
+                error_message = f"Failed to get past meeting: {response.status_code} - {response.text}"
+                logger.error(error_message)
+                raise HTTPException(status_code=response.status_code, detail=error_message)
+
+            return response.json()
+
+    except Exception as e:
+        logger.error(f"Error getting past meeting {meeting_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/meetings/{meeting_id}/summary")
 async def get_meeting_summary(meeting_id: str):
     """
