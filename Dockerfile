@@ -22,14 +22,14 @@ RUN pip install --no-cache-dir -e .
 # Create directory for environment file
 RUN mkdir -p /app/config
 
-# Expose port (MCP typically uses stdio, but we'll expose for HTTP if needed)
-EXPOSE 8080
+# Expose port 3000 (Coolify default)
+EXPOSE 3000
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV MCP_TRANSPORT=sse
 ENV FASTMCP_HOST=0.0.0.0
-ENV FASTMCP_PORT=8080
+ENV FASTMCP_PORT=3000
 
 # Run the server
 CMD ["python", "-m", "zoom_mcp.server"]
