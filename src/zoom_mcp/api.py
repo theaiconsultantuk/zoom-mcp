@@ -136,14 +136,72 @@ async def get_todays_meetings(
             except ValueError:
                 raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
 
-            params = ListMeetingsParams(
-                user_id=user_id or "me",
-                type="scheduled",
-                from_date=date,
-                to_date=date,
-                page_size=300
-            )
-            result = await list_meetings(params)
+            # If no user_id specified, use list_todays_meetings which gets all users
+            if not user_id:
+                params = ListTodaysMeetingsParams(user_id=None)
+                # Override the date in the function
+                import httpx
+                from zoom_mcp.auth.zoom_auth import ZoomAuth
+
+                zoom_auth = ZoomAuth.from_env()
+                access_token = zoom_auth.get_access_token()
+
+                # Get list of users first
+                users_url = "https://api.zoom.us/v2/users"
+                headers = {
+                    "Authorization": f"Bearer {access_token}",
+                    "Content-Type": "application/json"
+                }
+
+                all_meetings = []
+                async with httpx.AsyncClient() as client:
+                    users_response = await client.get(
+                        users_url,
+                        headers=headers,
+                        params={"page_size": 300}
+                    )
+
+                    if users_response.status_code == 200:
+                        users_data = users_response.json()
+
+                        # Get meetings for each user
+                        for user in users_data.get("users", []):
+                            user_id_item = user.get("id")
+                            meetings_url = f"https://api.zoom.us/v2/users/{user_id_item}/meetings"
+
+                            meetings_response = await client.get(
+                                meetings_url,
+                                headers=headers,
+                                params={
+                                    "type": "scheduled",
+                                    "from": date,
+                                    "to": date,
+                                    "page_size": 300
+                                }
+                            )
+
+                            if meetings_response.status_code == 200:
+                                meetings_data = meetings_response.json()
+                                meetings = meetings_data.get("meetings", [])
+                                for meeting in meetings:
+                                    meeting["user_email"] = user.get("email")
+                                    meeting["user_name"] = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
+                                all_meetings.extend(meetings)
+
+                return {
+                    "date": date,
+                    "total_meetings": len(all_meetings),
+                    "meetings": all_meetings
+                }
+            else:
+                params = ListMeetingsParams(
+                    user_id=user_id,
+                    type="scheduled",
+                    from_date=date,
+                    to_date=date,
+                    page_size=300
+                )
+                result = await list_meetings(params)
 
             # Transform to match list_todays_meetings format
             return {
