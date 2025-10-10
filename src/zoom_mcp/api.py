@@ -235,6 +235,65 @@ async def get_meeting_details(meeting_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/meetings/{meeting_id}/summary")
+async def get_meeting_summary(meeting_id: str):
+    """
+    Get AI-generated summary for a specific meeting.
+
+    This retrieves the Zoom AI Companion meeting summary including:
+    - Summary overview
+    - Next steps
+    - Action items
+    - Key points
+
+    Example:
+        GET /api/meetings/87047461484/summary
+
+    Note: Requires meeting:read:meeting_summary scope to be enabled
+    """
+    try:
+        from zoom_mcp.auth.zoom_auth import ZoomAuth
+        import httpx
+
+        # Get auth token
+        zoom_auth = ZoomAuth.from_env()
+        access_token = zoom_auth.get_access_token()
+
+        # Construct API URL
+        api_url = f"https://api.zoom.us/v2/meetings/{meeting_id}/meeting_summary"
+
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json"
+        }
+
+        async with httpx.AsyncClient() as client:
+            response = await client.get(api_url, headers=headers)
+
+            if response.status_code == 404:
+                return {
+                    "meeting_id": meeting_id,
+                    "summary_available": False,
+                    "message": "No AI summary available for this meeting yet. Summaries are generated after the meeting ends."
+                }
+
+            if response.status_code != 200:
+                error_message = f"Failed to get meeting summary: {response.status_code} - {response.text}"
+                logger.error(error_message)
+                raise HTTPException(status_code=response.status_code, detail=error_message)
+
+            summary_data = response.json()
+            return {
+                "meeting_id": meeting_id,
+                "summary_available": True,
+                **summary_data
+            }
+
+    except Exception as e:
+        logger.error(f"Error getting meeting summary for {meeting_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/users")
 async def get_users(
     status: str = Query("active", description="User status: active, inactive, or pending")
