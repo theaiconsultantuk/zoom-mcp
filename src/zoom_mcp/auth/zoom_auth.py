@@ -70,43 +70,24 @@ class ZoomAuth:
             f"{self.api_key}:{self.api_secret}".encode()
         ).decode()
 
-        # Define required scopes
-        scopes = [
-            "account:read:settings:master",
-            "account:read:account_setting:master",
-            "cloud_recording:read:list_account_recordings:master",
-            "cloud_recording:read:recording:master"
-        ]
-        
-        # Join scopes with space for OAuth token request
-        scopes_str = " ".join(scopes)
-
         # Print debug information
         print(f"API Key: {self.api_key}")
         print(f"API Secret: {'*' * len(self.api_secret)}")
         print(f"Account ID: {self.account_id}")
-        print(f"Basic Auth: {credentials[:10]}...{credentials[-10:]}")
-        print(f"Scopes: {scopes_str}")
 
-        # Try client credentials grant type 
+        # For Server-to-Server OAuth, scopes are pre-configured in the app
+        # We don't need to request them in the token call
         with httpx.Client() as client:
-            # Make the request with client_credentials grant type
+            # Make the request with account_credentials grant type for Server-to-Server OAuth
             response = client.post(
-                "https://zoom.us/oauth/token",
+                f"https://zoom.us/oauth/token?grant_type=account_credentials&account_id={self.account_id}",
                 headers={
                     "Authorization": f"Basic {credentials}",
-                    "Content-Type": "application/x-www-form-urlencoded"
-                },
-                data={
-                    "grant_type": "client_credentials",
-                    "scope": scopes_str
                 },
                 timeout=10.0,
             )
-            
+
             print(f"Response status: {response.status_code}")
-            print(f"Response headers: {dict(response.headers)}")
-            print(f"Response body: {response.text}")
             
             if response.status_code != 200:
                 error_message = f"Failed to get OAuth token: {response.status_code} - {response.text}"

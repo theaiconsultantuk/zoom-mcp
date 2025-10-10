@@ -15,7 +15,23 @@ from zoom_mcp.auth.zoom_auth import ZoomAuth
 from zoom_mcp.resources.recordings import RecordingListParams, RecordingResource
 from zoom_mcp.tools.recordings import (
     GetRecordingTranscriptParams,
+    ListRecordingsParams,
     get_recording_transcript as get_recording_transcript_tool,
+    list_recordings as list_recordings_tool,
+)
+from zoom_mcp.tools.meetings import (
+    ListMeetingsParams,
+    GetMeetingParams,
+    ListTodaysMeetingsParams,
+    list_meetings as list_meetings_tool,
+    get_meeting as get_meeting_tool,
+    list_todays_meetings as list_todays_meetings_tool,
+)
+from zoom_mcp.tools.users import (
+    ListUsersParams,
+    GetUserParams,
+    list_users as list_users_tool,
+    get_user as get_user_tool,
 )
 
 # Configure logging
@@ -74,14 +90,16 @@ class ZoomMCP:
 
     def _register_tools(self):
         """Register all Zoom tools with the MCP server."""
+
+        # Recording tools
         @self.mcp_server.tool()
         async def get_recording_transcript(params: GetRecordingTranscriptParams) -> str:
             """
             Get the transcript for a Zoom recording.
-            
+
             Args:
                 params: Parameters for retrieving the recording transcript
-                
+
             Returns:
                 JSON string containing the transcript data
             """
@@ -90,6 +108,116 @@ class ZoomMCP:
                 return json.dumps(transcript_data.dict())
             except Exception as e:
                 logger.error(f"Error in get_recording_transcript tool: {str(e)}")
+                raise
+
+        @self.mcp_server.tool()
+        async def list_recordings(params: ListRecordingsParams) -> str:
+            """
+            List Zoom cloud recordings.
+
+            Args:
+                params: Parameters for listing recordings
+
+            Returns:
+                JSON string containing the list of recordings
+            """
+            try:
+                recordings_data = await list_recordings_tool(params)
+                return json.dumps(recordings_data)
+            except Exception as e:
+                logger.error(f"Error in list_recordings tool: {str(e)}")
+                raise
+
+        # Meeting tools
+        @self.mcp_server.tool()
+        async def list_meetings(params: ListMeetingsParams) -> str:
+            """
+            List Zoom meetings for a user.
+
+            Args:
+                params: Parameters for listing meetings
+
+            Returns:
+                JSON string containing the list of meetings
+            """
+            try:
+                meetings_data = await list_meetings_tool(params)
+                return json.dumps(meetings_data)
+            except Exception as e:
+                logger.error(f"Error in list_meetings tool: {str(e)}")
+                raise
+
+        @self.mcp_server.tool()
+        async def get_meeting(params: GetMeetingParams) -> str:
+            """
+            Get details for a specific Zoom meeting.
+
+            Args:
+                params: Parameters for getting meeting details
+
+            Returns:
+                JSON string containing meeting details
+            """
+            try:
+                meeting_data = await get_meeting_tool(params)
+                return json.dumps(meeting_data)
+            except Exception as e:
+                logger.error(f"Error in get_meeting tool: {str(e)}")
+                raise
+
+        @self.mcp_server.tool()
+        async def list_todays_meetings(params: ListTodaysMeetingsParams) -> str:
+            """
+            List all Zoom meetings scheduled for today.
+
+            Args:
+                params: Parameters for listing today's meetings
+
+            Returns:
+                JSON string containing today's meetings
+            """
+            try:
+                meetings_data = await list_todays_meetings_tool(params)
+                return json.dumps(meetings_data)
+            except Exception as e:
+                logger.error(f"Error in list_todays_meetings tool: {str(e)}")
+                raise
+
+        # User tools
+        @self.mcp_server.tool()
+        async def list_users(params: ListUsersParams) -> str:
+            """
+            List Zoom users in the account.
+
+            Args:
+                params: Parameters for listing users
+
+            Returns:
+                JSON string containing the list of users
+            """
+            try:
+                users_data = await list_users_tool(params)
+                return json.dumps(users_data)
+            except Exception as e:
+                logger.error(f"Error in list_users tool: {str(e)}")
+                raise
+
+        @self.mcp_server.tool()
+        async def get_user(params: GetUserParams) -> str:
+            """
+            Get details for a specific Zoom user.
+
+            Args:
+                params: Parameters for getting user details
+
+            Returns:
+                JSON string containing user details
+            """
+            try:
+                user_data = await get_user_tool(params)
+                return json.dumps(user_data)
+            except Exception as e:
+                logger.error(f"Error in get_user tool: {str(e)}")
                 raise
 
     def start(self):

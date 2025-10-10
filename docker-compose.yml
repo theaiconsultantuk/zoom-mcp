@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  zoom-mcp:
+    build: .
+    container_name: zoom-mcp-server
+    restart: unless-stopped
+    environment:
+      - ZOOM_API_KEY=${ZOOM_API_KEY}
+      - ZOOM_API_SECRET=${ZOOM_API_SECRET}
+      - ZOOM_ACCOUNT_ID=${ZOOM_ACCOUNT_ID}
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+    networks:
+      - mcp-network
+    volumes:
+      - ./logs:/app/logs
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  mcp-network:
+    driver: bridge

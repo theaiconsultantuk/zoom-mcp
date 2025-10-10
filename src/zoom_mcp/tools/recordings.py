@@ -7,7 +7,8 @@ retrieving and processing recording transcripts.
 
 import logging
 import re
-from typing import Any, Dict, List
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -25,6 +26,14 @@ class GetRecordingTranscriptParams(BaseModel):
     """Parameters for retrieving a recording transcript."""
     recording_url: str = Field(..., description="URL of the Zoom recording")
     include_speaker_labels: bool = Field(True, description="Include speaker labels in the transcript")
+
+
+class ListRecordingsParams(BaseModel):
+    """Parameters for listing recordings."""
+    user_id: Optional[str] = Field(None, description="User ID or email. Leave empty to get all account recordings")
+    from_date: Optional[str] = Field(None, description="Start date in YYYY-MM-DD format")
+    to_date: Optional[str] = Field(None, description="End date in YYYY-MM-DD format")
+    page_size: int = Field(30, description="Number of records per page (max 300)")
 
 
 class RecordingTranscriptResponse(BaseModel):
@@ -125,4 +134,118 @@ async def get_recording_transcript(params: GetRecordingTranscriptParams) -> Reco
     
     except Exception as e:
         logger.error(f"Error retrieving recording transcript: {str(e)}")
+        raise
+
+
+async def list_recordings(params: ListRecordingsParams) -> Dict[str, Any]:
+    """
+    List Zoom recordings.
+
+    Args:
+        params: Parameters for listing recordings
+
+    Returns:
+        Dict containing the list of recordings
+    """
+    try:
+        # Initialize Zoom auth from environment variables
+        zoom_auth = ZoomAuth.from_env()
+
+        # Get the access token
+        access_token = zoom_auth.get_access_token()
+
+        # Set default date range if not provided (last 30 days)
+        if not params.from_date:
+            from_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+        else:
+            from_date = params.from_date
+
+        if not params.to_date:
+            to_date = datetime.now().strftime("%Y-%m-%d")
+        else:
+            to_date = params.to_date
+
+        # If user_id is provided, get recordings for that user
+        if params.user_id:
+            api_url = f"https://api.zoom.us/v2/users/{params.user_id}/recordings"
+            query_params = {
+                "from": from_date,
+                "to": to_date,
+                "page_size": params.page_size
+            }
+
+            headers = {
+                "Authorization": f"Bearer {access_token}",
+                "Content-Type": "application/json"
+            }
+
+            import httpx
+            async with httpx.AsyncClient() as client:
+                response = await client.get(api_url, headers=headers, params=query_params)
+
+                if response.status_code != 200:
+                    error_message = f"Failed to list recordings: {response.status_code} - {response.text}"
+                    logger.error(error_message)
+                    raise Exception(error_message)
+
+                return response.json()
+        else:
+            # Get all users' recordings
+            users_url = "https://api.zoom.us/v2/users"
+            headers = {
+                "Authorization": f"Bearer {access_token}",
+                "Content-Type": "application/json"
+            }
+
+            import httpx
+            all_recordings = []
+
+            async with httpx.AsyncClient() as client:
+                # Get all users
+                users_response = await client.get(
+                    users_url,
+                    headers=headers,
+                    params={"page_size": 300}
+                )
+
+                if users_response.status_code != 200:
+                    error_message = f"Failed to list users: {users_response.status_code} - {users_response.text}"
+                    logger.error(error_message)
+                    raise Exception(error_message)
+
+                users_data = users_response.json()
+
+                # Get recordings for each user
+                for user in users_data.get("users", []):
+                    user_id = user.get("id")
+                    recordings_url = f"https://api.zoom.us/v2/users/{user_id}/recordings"
+
+                    recordings_response = await client.get(
+                        recordings_url,
+                        headers=headers,
+                        params={
+                            "from": from_date,
+                            "to": to_date,
+                            "page_size": params.page_size
+                        }
+                    )
+
+                    if recordings_response.status_code == 200:
+                        recordings_data = recordings_response.json()
+                        meetings = recordings_data.get("meetings", [])
+                        # Add user info to each recording
+                        for meeting in meetings:
+                            meeting["user_email"] = user.get("email")
+                            meeting["user_name"] = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
+                        all_recordings.extend(meetings)
+
+                return {
+                    "from": from_date,
+                    "to": to_date,
+                    "total_recordings": len(all_recordings),
+                    "meetings": all_recordings
+                }
+
+    except Exception as e:
+        logger.error(f"Error listing recordings: {str(e)}")
         raise 
