@@ -7,6 +7,7 @@ WORKDIR /app
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     gcc \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
@@ -27,9 +28,9 @@ EXPOSE 8080
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "from zoom_mcp.server import create_zoom_mcp; create_zoom_mcp()" || exit 1
+# Health check - disabled for stdio-based MCP server
+# Coolify: If you need healthcheck, please enable it in Coolify UI settings
+# and configure it to check the appropriate endpoint for your deployment
 
 # Run the server
 CMD ["python", "-m", "zoom_mcp.server"]
