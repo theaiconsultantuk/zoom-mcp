@@ -173,7 +173,7 @@ async def get_todays_meetings(
                                 meetings_url,
                                 headers=headers,
                                 params={
-                                    "type": "scheduled",
+                                    "type": "upcoming",  # Changed from 'scheduled' to 'upcoming' to include recurring meetings
                                     "from": date,
                                     "to": date,
                                     "page_size": 300
@@ -196,7 +196,7 @@ async def get_todays_meetings(
             else:
                 params = ListMeetingsParams(
                     user_id=user_id,
-                    type="scheduled",
+                    type="upcoming",  # Changed from 'scheduled' to 'upcoming' to include recurring meetings
                     from_date=date,
                     to_date=date,
                     page_size=300
