@@ -219,6 +219,39 @@ async def get_todays_meetings(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/meetings/templates")
+async def get_meeting_templates():
+    """
+    Get available meeting templates.
+
+    Returns:
+        Dictionary of meeting templates (think_tank, ai_training, office_hours, etc.)
+    """
+    import json
+    from pathlib import Path
+
+    try:
+        template_file = Path(__file__).parent.parent.parent / "meeting_templates.json"
+        if template_file.exists():
+            with open(template_file, 'r') as f:
+                templates = json.load(f)
+            return {"success": True, "templates": templates}
+        else:
+            return {
+                "success": True,
+                "templates": {
+                    "think_tank": {
+                        "topic": "Weekly Thinktank Meeting",
+                        "duration": 90,
+                        "agenda": "Weekly discussion"
+                    }
+                }
+            }
+    except Exception as e:
+        logger.error(f"Error loading templates: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/meetings/{meeting_id}")
 async def get_meeting_details(meeting_id: str):
     """
@@ -363,39 +396,6 @@ async def get_user_details(user_id: str):
         return await get_user(params)
     except Exception as e:
         logger.error(f"Error getting user {user_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/api/meetings/templates")
-async def get_meeting_templates():
-    """
-    Get available meeting templates.
-
-    Returns:
-        Dictionary of meeting templates (think_tank, ai_training, office_hours, etc.)
-    """
-    import json
-    from pathlib import Path
-
-    try:
-        template_file = Path(__file__).parent.parent.parent / "meeting_templates.json"
-        if template_file.exists():
-            with open(template_file, 'r') as f:
-                templates = json.load(f)
-            return {"success": True, "templates": templates}
-        else:
-            return {
-                "success": True,
-                "templates": {
-                    "think_tank": {
-                        "topic": "Weekly Thinktank Meeting",
-                        "duration": 90,
-                        "agenda": "Weekly discussion"
-                    }
-                }
-            }
-    except Exception as e:
-        logger.error(f"Error loading templates: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
