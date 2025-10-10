@@ -69,6 +69,53 @@ async def health_check():
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
 
 
+@app.get("/api/test/sample-meetings")
+async def get_sample_meetings():
+    """
+    Return sample meeting data for testing Gumloop integrations.
+    This is dummy data - not real meetings from Zoom.
+    """
+    return {
+        "date": "2025-10-15",
+        "total_meetings": 3,
+        "meetings": [
+            {
+                "id": "123456789",
+                "topic": "Team Standup",
+                "start_time": "2025-10-15T09:00:00Z",
+                "duration": 30,
+                "user_email": "manager@example.com",
+                "user_name": "Project Manager",
+                "join_url": "https://zoom.us/j/123456789",
+                "agenda": "Daily standup meeting",
+                "timezone": "Europe/London"
+            },
+            {
+                "id": "987654321",
+                "topic": "Client Demo",
+                "start_time": "2025-10-15T14:00:00Z",
+                "duration": 60,
+                "user_email": "sales@example.com",
+                "user_name": "Sales Rep",
+                "join_url": "https://zoom.us/j/987654321",
+                "agenda": "Product demonstration for new client",
+                "timezone": "Europe/London"
+            },
+            {
+                "id": "555555555",
+                "topic": "All Hands Meeting",
+                "start_time": "2025-10-15T16:00:00Z",
+                "duration": 90,
+                "user_email": "ceo@example.com",
+                "user_name": "CEO",
+                "join_url": "https://zoom.us/j/555555555",
+                "agenda": "Quarterly company update",
+                "timezone": "Europe/London"
+            }
+        ]
+    }
+
+
 @app.get("/api/meetings/today")
 async def get_todays_meetings(
     date: Optional[str] = Query(None, description="Date in YYYY-MM-DD format (default: today)"),
