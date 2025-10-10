@@ -70,8 +70,8 @@ class ZoomAuth:
             f"{self.api_key}:{self.api_secret}".encode()
         ).decode()
 
-        # Print debug information
-        print(f"API Key: {self.api_key}")
+        # Print debug information (with credentials masked)
+        print(f"API Key: {'*' * len(self.api_key)}")
         print(f"API Secret: {'*' * len(self.api_secret)}")
         print(f"Account ID: {self.account_id}")
 
