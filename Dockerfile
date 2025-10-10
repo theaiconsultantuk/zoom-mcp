@@ -22,9 +22,9 @@ RUN pip install --no-cache-dir -e .
 # Create directory for environment file
 RUN mkdir -p /app/config
 
-# Expose ports
-EXPOSE 3000  # MCP SSE Server
-EXPOSE 3001  # REST API
+# Expose ports (MCP SSE Server + REST API)
+EXPOSE 3000
+EXPOSE 3001
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
