@@ -201,7 +201,7 @@ async def list_todays_meetings(params: ListTodaysMeetingsParams) -> Dict[str, An
                         meetings_url,
                         headers=headers,
                         params={
-                            "type": "scheduled",
+                            "type": "upcoming",  # Changed to 'upcoming' to include recurring meetings
                             "from": today,
                             "to": today,
                             "page_size": 300
