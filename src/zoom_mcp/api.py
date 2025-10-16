@@ -43,6 +43,21 @@ from zoom_mcp.tools.personal_contacts import (
     search_personal_contacts,
     get_contact_by_name,
 )
+from zoom_mcp.tools.date_parser import (
+    parse_natural_datetime,
+    parse_duration,
+)
+from zoom_mcp.tools.meeting_management import (
+    UpdateMeetingParams,
+    DeleteMeetingParams,
+    update_meeting,
+    delete_meeting,
+    find_meeting_by_description,
+)
+from zoom_mcp.tools.meeting_notes import (
+    generate_meeting_notes,
+    download_recording,
+)
 
 # Configure logging
 logging.basicConfig(
@@ -693,6 +708,187 @@ async def book_meeting_with_contact(
         raise
     except Exception as e:
         logger.error(f"Error booking meeting with contact: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/meetings/book-natural")
+async def book_meeting_natural_language(
+    description: str = Query(..., description="Natural language description"),
+    contact_name: Optional[str] = Query(None, description="Contact name"),
+    topic: Optional[str] = Query(None, description="Meeting topic (auto-generated if not provided)")
+):
+    """
+    Book a meeting using natural language date/time parsing.
+
+    Examples:
+        POST /api/meetings/book-natural?description=Tuesday at 3pm&contact_name=Agostino&topic=Strategy Discussion
+        POST /api/meetings/book-natural?description=tomorrow morning&contact_name=Milana
+        POST /api/meetings/book-natural?description=next Friday at 10am&contact_name=Oliver
+
+    Supported formats:
+        - "Tuesday at 3pm", "tomorrow at 10am", "next Friday morning"
+        - "in 2 hours", "in 30 minutes"
+        - "today afternoon", "tomorrow evening"
+    """
+    try:
+        # Parse natural language datetime
+        start_time_iso = parse_natural_datetime(description)
+
+        # Parse duration if specified
+        duration = parse_duration(description) if 'hour' in description or 'min' in description else 60
+
+        # Auto-generate topic if not provided
+        if not topic and contact_name:
+            topic = f"Meeting with {contact_name}"
+        elif not topic:
+            topic = "Zoom Meeting"
+
+        # Create meeting
+        if contact_name:
+            contact = await get_contact_by_name(contact_name)
+            if not contact:
+                raise HTTPException(404, f"Contact '{contact_name}' not found")
+
+            return await create_meeting(
+                topic=topic,
+                start_time=start_time_iso,
+                duration=duration,
+                attendees=contact['email']
+            )
+        else:
+            return await create_meeting(
+                topic=topic,
+                start_time=start_time_iso,
+                duration=duration
+            )
+
+    except Exception as e:
+        logger.error(f"Error booking meeting with natural language: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.patch("/api/meetings/{meeting_id}")
+async def update_meeting_endpoint(
+    meeting_id: str,
+    topic: Optional[str] = Query(None, description="New topic"),
+    start_time: Optional[str] = Query(None, description="New start time (ISO or natural language)"),
+    duration: Optional[int] = Query(None, description="New duration in minutes"),
+    agenda: Optional[str] = Query(None, description="New agenda")
+):
+    """
+    Update an existing meeting.
+
+    Example:
+        PATCH /api/meetings/123456789?topic=New Topic&start_time=2025-10-20T15:00:00Z
+        PATCH /api/meetings/123456789?start_time=tomorrow at 3pm
+
+    Supports natural language for start_time!
+    """
+    try:
+        # Parse natural language datetime if provided
+        if start_time and not start_time.endswith('Z'):
+            start_time = parse_natural_datetime(start_time)
+
+        params = UpdateMeetingParams(
+            meeting_id=meeting_id,
+            topic=topic,
+            start_time=start_time,
+            duration=duration,
+            agenda=agenda
+        )
+
+        return await update_meeting(params)
+
+    except Exception as e:
+        logger.error(f"Error updating meeting {meeting_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/meetings/{meeting_id}")
+async def delete_meeting_endpoint(meeting_id: str):
+    """
+    Delete/cancel a meeting.
+
+    Example:
+        DELETE /api/meetings/123456789
+    """
+    try:
+        params = DeleteMeetingParams(meeting_id=meeting_id)
+        return await delete_meeting(params)
+
+    except Exception as e:
+        logger.error(f"Error deleting meeting {meeting_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/meetings/find/{description}")
+async def find_meeting_endpoint(description: str):
+    """
+    Find a meeting by natural language description.
+
+    Example:
+        GET /api/meetings/find/meeting with Agostino
+        GET /api/meetings/find/think tank
+
+    Returns the first matching meeting.
+    """
+    try:
+        meeting = await find_meeting_by_description(description)
+
+        if not meeting:
+            raise HTTPException(404, f"No meeting found matching '{description}'")
+
+        return meeting
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error finding meeting: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/meetings/{meeting_id}/notes")
+async def get_meeting_notes_endpoint(meeting_id: str):
+    """
+    Generate comprehensive meeting notes including AI summary, transcript, and action items.
+
+    Example:
+        GET /api/meetings/87047461484/notes
+
+    Returns:
+        - Meeting details
+        - AI-generated summary
+        - Recording details
+        - Transcript (if available)
+        - Action items
+    """
+    try:
+        return await generate_meeting_notes(meeting_id)
+
+    except Exception as e:
+        logger.error(f"Error generating meeting notes for {meeting_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/meetings/{meeting_id}/download")
+async def download_meeting_recording_endpoint(
+    meeting_id: str,
+    file_type: str = Query("MP4", description="File type: MP4, M4A, TRANSCRIPT, or ALL")
+):
+    """
+    Get download URLs for meeting recordings.
+
+    Example:
+        GET /api/meetings/87047461484/download?file_type=MP4
+        GET /api/meetings/87047461484/download?file_type=ALL
+
+    Returns download URLs for recording files.
+    """
+    try:
+        return await download_recording(meeting_id, file_type)
+
+    except Exception as e:
+        logger.error(f"Error getting download URLs for {meeting_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
