@@ -33,6 +33,12 @@ from zoom_mcp.tools.users import (
     list_users as list_users_tool,
     get_user as get_user_tool,
 )
+from zoom_mcp.tools.contacts import (
+    ListContactsParams,
+    GetContactParams,
+    list_contacts as list_contacts_tool,
+    get_contact as get_contact_tool,
+)
 
 # Configure logging
 logging.basicConfig(
@@ -218,6 +224,43 @@ class ZoomMCP:
                 return json.dumps(user_data)
             except Exception as e:
                 logger.error(f"Error in get_user tool: {str(e)}")
+                raise
+
+        # Contact tools
+        @self.mcp_server.tool()
+        async def list_contacts(params: ListContactsParams) -> str:
+            """
+            List Zoom contacts for the authenticated user.
+
+            Args:
+                params: Parameters for listing contacts
+
+            Returns:
+                JSON string containing the list of contacts
+            """
+            try:
+                contacts_data = await list_contacts_tool(params)
+                return json.dumps(contacts_data)
+            except Exception as e:
+                logger.error(f"Error in list_contacts tool: {str(e)}")
+                raise
+
+        @self.mcp_server.tool()
+        async def get_contact(params: GetContactParams) -> str:
+            """
+            Get details for a specific Zoom contact.
+
+            Args:
+                params: Parameters for getting contact details
+
+            Returns:
+                JSON string containing contact details
+            """
+            try:
+                contact_data = await get_contact_tool(params)
+                return json.dumps(contact_data)
+            except Exception as e:
+                logger.error(f"Error in get_contact tool: {str(e)}")
                 raise
 
     def start(self, transport: str = "stdio"):

@@ -32,6 +32,12 @@ from zoom_mcp.tools.recordings import (
     list_recordings,
     get_recording_transcript,
 )
+from zoom_mcp.tools.contacts import (
+    ListContactsParams,
+    GetContactParams,
+    list_contacts,
+    get_contact,
+)
 
 # Configure logging
 logging.basicConfig(
@@ -58,7 +64,8 @@ async def root():
             "meetings": "/api/meetings/today",
             "specific_meeting": "/api/meetings/{meeting_id}",
             "users": "/api/users",
-            "recordings": "/api/recordings"
+            "recordings": "/api/recordings",
+            "contacts": "/api/contacts"
         }
     }
 
@@ -583,6 +590,42 @@ async def get_transcript(recording_id: str):
         return await get_recording_transcript(params)
     except Exception as e:
         logger.error(f"Error getting transcript for {recording_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/contacts")
+async def get_contacts(
+    type: Optional[str] = Query(None, description="Contact type: 'company' for company directory"),
+    page_size: Optional[int] = Query(50, description="Number of contacts per page (max 50)")
+):
+    """
+    Get list of Zoom contacts.
+
+    Example:
+        GET /api/contacts
+        GET /api/contacts?type=company
+    """
+    try:
+        params = ListContactsParams(type=type, page_size=page_size)
+        return await list_contacts(params)
+    except Exception as e:
+        logger.error(f"Error listing contacts: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/contacts/{contact_id}")
+async def get_contact_details(contact_id: str):
+    """
+    Get details for a specific contact.
+
+    Example:
+        GET /api/contacts/user@example.com
+    """
+    try:
+        params = GetContactParams(contact_id=contact_id)
+        return await get_contact(params)
+    except Exception as e:
+        logger.error(f"Error getting contact {contact_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
