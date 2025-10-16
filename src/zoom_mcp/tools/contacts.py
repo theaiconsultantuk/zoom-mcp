@@ -49,7 +49,8 @@ async def list_contacts(params: ListContactsParams) -> dict:
     zoom_auth = ZoomAuth.from_env()
     access_token = zoom_auth.get_access_token()
 
-    api_url = "https://api.zoom.us/v2/chat/users/me/contacts"
+    # Try the general contacts endpoint (not team chat specific)
+    api_url = "https://api.zoom.us/v2/contacts"
 
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -93,7 +94,8 @@ async def get_contact(params: GetContactParams) -> dict:
     zoom_auth = ZoomAuth.from_env()
     access_token = zoom_auth.get_access_token()
 
-    api_url = f"https://api.zoom.us/v2/chat/users/me/contacts/{params.contact_id}"
+    # Try the general contacts endpoint (not team chat specific)
+    api_url = f"https://api.zoom.us/v2/contacts/{params.contact_id}"
 
     headers = {
         "Authorization": f"Bearer {access_token}",
