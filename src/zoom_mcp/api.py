@@ -38,6 +38,11 @@ from zoom_mcp.tools.contacts import (
     list_contacts,
     get_contact,
 )
+from zoom_mcp.tools.personal_contacts import (
+    SearchContactParams,
+    search_personal_contacts,
+    get_contact_by_name,
+)
 
 # Configure logging
 logging.basicConfig(
@@ -626,6 +631,68 @@ async def get_contact_details(contact_id: str):
         return await get_contact(params)
     except Exception as e:
         logger.error(f"Error getting contact {contact_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/contacts/search/{query}")
+async def search_contacts(query: str):
+    """
+    Search personal contacts by name, email, or company.
+
+    Example:
+        GET /api/contacts/search/Agostino
+        GET /api/contacts/search/ThinkTank
+    """
+    try:
+        params = SearchContactParams(query=query)
+        return await search_personal_contacts(params)
+    except Exception as e:
+        logger.error(f"Error searching contacts: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/meetings/book-with-contact")
+async def book_meeting_with_contact(
+    contact_name: str = Query(..., description="Contact name to invite"),
+    topic: str = Query(..., description="Meeting topic"),
+    start_time: str = Query(..., description="Start time in ISO format (YYYY-MM-DDTHH:MM:SSZ)"),
+    duration: int = Query(60, description="Duration in minutes"),
+    agenda: Optional[str] = Query(None, description="Meeting agenda")
+):
+    """
+    Book a meeting with a personal contact by name.
+
+    Example:
+        POST /api/meetings/book-with-contact?contact_name=Agostino&topic=Strategy%20Discussion&start_time=2025-10-22T10:00:00Z&duration=60
+
+    Natural language examples that this enables:
+        - "Book a meeting with Agostino for Tuesday at 10am"
+        - "Schedule call with Milana next week"
+        - "Create meeting with Oliver tomorrow"
+    """
+    try:
+        # Look up contact
+        contact = await get_contact_by_name(contact_name)
+
+        if not contact:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Contact '{contact_name}' not found in personal contacts"
+            )
+
+        # Create meeting with contact's email
+        return await create_meeting(
+            topic=topic,
+            start_time=start_time,
+            duration=duration,
+            attendees=contact['email'],
+            agenda=agenda or f"Meeting with {contact['name']}"
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error booking meeting with contact: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
