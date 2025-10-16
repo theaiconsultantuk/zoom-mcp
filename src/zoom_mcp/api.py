@@ -79,14 +79,44 @@ async def root():
     """Root endpoint - API information."""
     return {
         "name": "Zoom MCP REST API",
-        "version": "1.0.0",
+        "version": "2.0.0",
         "endpoints": {
-            "meetings": "/api/meetings/today",
-            "specific_meeting": "/api/meetings/{meeting_id}",
-            "users": "/api/users",
-            "recordings": "/api/recordings",
-            "contacts": "/api/contacts"
-        }
+            "users": {
+                "list_users": "GET /api/users",
+                "current_user": "GET /api/users/me"
+            },
+            "meetings": {
+                "list_all": "GET /api/meetings",
+                "today": "GET /api/meetings/today",
+                "upcoming": "GET /api/meetings/upcoming",
+                "create": "POST /api/meetings",
+                "get_specific": "GET /api/meetings/{meeting_id}",
+                "update": "PATCH /api/meetings/{meeting_id}",
+                "delete": "DELETE /api/meetings/{meeting_id}",
+                "find_by_description": "GET /api/meetings/find/{description}"
+            },
+            "natural_language": {
+                "book_meeting": "POST /api/meetings/book-natural",
+                "book_with_contact": "POST /api/meetings/book-with-contact"
+            },
+            "contacts": {
+                "search": "GET /api/contacts/search/{query}"
+            },
+            "post_meeting": {
+                "meeting_notes": "GET /api/meetings/{meeting_id}/notes",
+                "download_recording": "GET /api/meetings/{meeting_id}/download"
+            },
+            "recordings": {
+                "list_all": "GET /api/recordings"
+            }
+        },
+        "features": [
+            "Natural language date/time parsing",
+            "Contact-based meeting booking",
+            "AI-powered meeting notes",
+            "Recording downloads",
+            "Meeting search and management"
+        ]
     }
 
 
